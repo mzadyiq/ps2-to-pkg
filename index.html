@@ -5,26 +5,22 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PS2 to PKG</title>
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
-            font-family: 'Segoe UI', Tahoma, sans-serif;
+            font-family: sans-serif;
             background: #0a0a14;
-            color: #e0e0e0;
-            min-height: 100vh;
+            color: #fff;
+            text-align: center;
             padding: 20px;
         }
-        .container {
-            max-width: 450px;
-            margin: 0 auto;
+        .box {
             background: #111122;
             border-radius: 20px;
             padding: 25px;
-            border: 1px solid #222244;
+            max-width: 400px;
+            margin: 0 auto;
         }
-        h2 { text-align: center; color: #ff6b6b; font-size: 26px; margin-bottom: 5px; }
-        .sub { text-align: center; color: #666; font-size: 13px; margin-bottom: 20px; }
-        .btn {
-            display: block;
+        h2 { color: #ff6b6b; }
+        button {
             width: 100%;
             padding: 15px;
             margin: 10px 0;
@@ -36,265 +32,72 @@
         }
         .btn-select { background: #1a1a3e; color: #ff6b6b; border: 2px dashed #ff6b6b; }
         .btn-convert { background: #ff6b6b; color: #fff; }
-        .btn-convert:disabled { background: #444; cursor: not-allowed; }
-        .btn-download { background: #2ed573; color: #fff; display: none; animation: glow 1.5s infinite; }
-        @keyframes glow {
-            0%, 100% { box-shadow: 0 0 10px #2ed573; }
-            50% { box-shadow: 0 0 30px #2ed573; }
-        }
-        .check-panel {
-            background: #0d0d1f;
-            border-radius: 15px;
+        .btn-convert:disabled { background: #444; }
+        .btn-download { background: #2ed573; color: #fff; display: none; }
+        #status {
+            margin-top: 15px;
             padding: 15px;
-            margin: 15px 0;
-            border: 1px solid #1a1a3e;
-            max-height: 300px;
-            overflow-y: auto;
-        }
-        .check-title { color: #ff6b6b; font-size: 14px; font-weight: bold; margin-bottom: 10px; text-align: center; }
-        .check-item {
-            display: flex;
-            align-items: center;
-            padding: 8px 0;
-            border-bottom: 1px solid #111133;
-            font-size: 13px;
-        }
-        .check-icon {
-            width: 24px;
-            height: 24px;
-            border-radius: 50%;
-            margin-left: 10px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 12px;
-            flex-shrink: 0;
-        }
-        .icon-ok { background: #1a3a1a; color: #2ed573; }
-        .icon-err { background: #3a1a1a; color: #ff4757; }
-        .icon-prog { background: #3a2a1a; color: #ffa502; animation: spin 1s infinite; }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        .check-text { flex: 1; }
-        .check-info { color: #666; font-size: 11px; }
-        .progress-wrap { margin: 10px 0; display: none; }
-        .progress-bar { width: 100%; height: 6px; background: #1a1a3e; border-radius: 3px; overflow: hidden; }
-        .progress-fill { height: 100%; background: #ff6b6b; width: 0%; transition: width 0.3s; }
-        .progress-text { text-align: center; font-size: 11px; color: #888; margin-top: 5px; }
-        input[type="file"] { display: none; }
-        .error-box {
-            background: #2a0a0a;
-            border: 1px solid #ff4757;
-            border-radius: 10px;
-            padding: 12px;
-            margin-top: 10px;
-            display: none;
-            color: #ff4757;
-            font-size: 13px;
-        }
-        .server-url {
             background: #0d0d1f;
-            border: 1px solid #1a1a3e;
             border-radius: 10px;
-            padding: 10px;
-            text-align: center;
-            font-size: 12px;
-            color: #2ed573;
-            margin-bottom: 10px;
+            font-size: 13px;
+            color: #aaa;
         }
+        input[type="file"] { display: none; }
     </style>
 </head>
 <body>
-    <div class="container">
+    <div class="box">
         <h2>🎮 PS2 to PKG</h2>
-        <p class="sub">خادم محلي | تشفير AES | حتى 4GB</p>
+        <p style="color:#2ed573;font-size:12px;">localhost:3000</p>
         
-        <div class="server-url">🟢 الخادم المحلي: localhost:3000</div>
-        
-        <button class="btn btn-select" onclick="document.getElementById('fileInput').click()">
+        <button class="btn-select" onclick="document.getElementById('fileInput').click()">
             📁 اختر ملف ISO
         </button>
-        <input type="file" id="fileInput" accept=".iso,.bin,.ISO,.BIN">
+        <input type="file" id="fileInput" accept=".iso,.bin">
         
-        <button class="btn btn-convert" id="convertBtn" disabled onclick="startConvert()">
+        <button class="btn-convert" id="convertBtn" disabled onclick="convert()">
             ⚡ ابدأ التحويل
         </button>
         
-        <a id="downloadLink" href="#" style="text-decoration:none;">
-            <button class="btn btn-download" id="downloadBtn">
-                ⬇️ تحميل ملف PKG
-            </button>
-        </a>
+        <a id="dl" href="#"><button class="btn-download" id="dbtn">⬇️ تحميل PKG</button></a>
         
-        <div class="check-panel" id="checkPanel">
-            <div class="check-title">📋 سجل العمليات</div>
-            <div id="checkList"></div>
-            <div class="progress-wrap" id="progressWrap">
-                <div class="progress-bar">
-                    <div class="progress-fill" id="progressFill"></div>
-                </div>
-                <div class="progress-text" id="progressText"></div>
-            </div>
-            <div class="error-box" id="errorBox"></div>
-        </div>
+        <div id="status">👋 اختر ملف ISO</div>
     </div>
 
     <script>
-        var selectedFile = null;
-        var serverUrl = 'http://localhost:3000/convert';
-        var checkList = document.getElementById('checkList');
-        var errorBox = document.getElementById('errorBox');
-        var progressWrap = document.getElementById('progressWrap');
-        var progressFill = document.getElementById('progressFill');
-        var progressText = document.getElementById('progressText');
-        
-        function resetChecks() {
-            checkList.innerHTML = '';
-            errorBox.style.display = 'none';
-            progressWrap.style.display = 'none';
-            progressFill.style.width = '0%';
-            document.getElementById('downloadBtn').style.display = 'none';
-        }
-        
-        function addCheck(text, status, info) {
-            var div = document.createElement('div');
-            div.className = 'check-item';
-            
-            var icon = document.createElement('span');
-            icon.className = 'check-icon';
-            
-            if (status === 'ok') { icon.className += ' icon-ok'; icon.innerText = '✓'; }
-            else if (status === 'err') { icon.className += ' icon-err'; icon.innerText = '✗'; }
-            else if (status === 'prog') { icon.className += ' icon-prog'; icon.innerText = '↻'; }
-            
-            var textSpan = document.createElement('span');
-            textSpan.className = 'check-text';
-            textSpan.innerText = text;
-            
-            if (info) {
-                var infoSpan = document.createElement('span');
-                infoSpan.className = 'check-info';
-                infoSpan.innerText = info;
-                textSpan.appendChild(document.createElement('br'));
-                textSpan.appendChild(infoSpan);
-            }
-            
-            div.appendChild(icon);
-            div.appendChild(textSpan);
-            checkList.appendChild(div);
-        }
-        
-        function setProgress(percent, text) {
-            progressWrap.style.display = 'block';
-            progressFill.style.width = percent + '%';
-            if (text) progressText.innerText = text;
-        }
-        
-        function showError(msg) {
-            errorBox.style.display = 'block';
-            errorBox.innerText = '❌ ' + msg;
-        }
-        
-        function formatSize(bytes) {
-            if (bytes < 1024) return bytes + ' B';
-            if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
-            if (bytes < 1073741824) return (bytes / 1048576).toFixed(1) + ' MB';
-            return (bytes / 1073741824).toFixed(2) + ' GB';
-        }
-        
+        var f = null;
         document.getElementById('fileInput').onchange = function(e) {
             if (e.target.files[0]) {
-                selectedFile = e.target.files[0];
+                f = e.target.files[0];
                 document.getElementById('convertBtn').disabled = false;
-                resetChecks();
-                addCheck('تم اختيار: ' + selectedFile.name, 'ok', formatSize(selectedFile.size));
+                document.getElementById('status').innerText = '✅ ' + f.name + ' (' + (f.size/1048576).toFixed(1) + 'MB)';
             }
         };
         
-        function startConvert() {
-            if (!selectedFile) return;
+        function convert() {
+            if (!f) return;
+            var s = document.getElementById('status');
+            var b = document.getElementById('convertBtn');
+            s.innerText = '⏳ جاري...';
+            b.disabled = true;
             
-            resetChecks();
-            document.getElementById('convertBtn').disabled = true;
+            var fd = new FormData();
+            fd.append('iso', f);
             
-            addCheck('بدء التحويل عبر الخادم المحلي...', 'ok');
-            addCheck('⏳ جاري معالجة الملف...', 'prog');
-            setProgress(0, 'بدء...');
-            
-            var xhr = new XMLHttpRequest();
-            var startTime = Date.now();
-            
-            xhr.upload.onprogress = function(e) {
-                if (e.lengthComputable) {
-                    var percent = Math.round((e.loaded / e.total) * 50);
-                    setProgress(percent, formatSize(e.loaded) + ' / ' + formatSize(e.total));
-                }
-            };
-            
-            xhr.onload = function() {
-                var time = ((Date.now() - startTime) / 1000).toFixed(1);
-                
-                document.querySelectorAll('.icon-prog').forEach(function(el) {
-                    el.className = 'check-icon icon-ok';
-                    el.innerText = '✓';
-                });
-                
-                if (xhr.status === 200) {
-                    addCheck('اكتمل في ' + time + ' ثانية', 'ok');
-                    
-                    var blob = xhr.response;
-                    addCheck('حجم PKG: ' + formatSize(blob.size), 'ok');
-                    setProgress(100, 'اكتمل!');
-                    
-                    // تحميل مباشر
-                    var url = URL.createObjectURL(blob);
-                    var pkgName = selectedFile.name.replace('.iso','.pkg').replace('.ISO','.pkg');
-                    
-                    // زر التحميل
-                    var dl = document.getElementById('downloadLink');
-                    var db = document.getElementById('downloadBtn');
-                    dl.href = url;
-                    dl.download = pkgName;
-                    db.style.display = 'block';
-                    
-                    // تحميل تلقائي
-                    var a = document.createElement('a');
-                    a.href = url;
-                    a.download = pkgName;
-                    a.style.display = 'none';
-                    document.body.appendChild(a);
-                    a.click();
-                    document.body.removeChild(a);
-                    
-                    addCheck('✅ تم بدء التحميل!', 'ok');
-                } else {
-                    addCheck('خطأ: ' + xhr.status, 'err');
-                    showError('تأكد من تشغيل تطبيق PS2 Server');
-                }
-                
-                document.getElementById('convertBtn').disabled = false;
-            };
-            
-            xhr.onerror = function() {
-                document.querySelectorAll('.icon-prog').forEach(function(el) {
-                    el.className = 'check-icon icon-err';
-                    el.innerText = '✗';
-                });
-                addCheck('فشل الاتصال', 'err');
-                showError('تأكد من تشغيل تطبيق PS2 Server');
-                setProgress(0, 'فشل');
-                document.getElementById('convertBtn').disabled = false;
-            };
-            
-            xhr.open('POST', serverUrl, true);
-            xhr.responseType = 'blob';
-            xhr.timeout = 600000;
-            
-            var formData = new FormData();
-            formData.append('iso', selectedFile);
-            xhr.send(formData);
+            fetch('http://localhost:3000/convert', {method:'POST', body:fd})
+            .then(function(r){return r.blob()})
+            .then(function(blob){
+                var url = URL.createObjectURL(blob);
+                document.getElementById('dl').href = url;
+                document.getElementById('dl').download = f.name.replace('.iso','.pkg').replace('.ISO','.pkg');
+                document.getElementById('dbtn').style.display = 'block';
+                s.innerText = '🎉 تم بنجاح! حجم PKG: ' + (blob.size/1048576).toFixed(1) + 'MB';
+                b.disabled = false;
+            })
+            .catch(function(e){
+                s.innerText = '❌ تأكد من تشغيل تطبيق PS2 Server';
+                b.disabled = false;
+            });
         }
     </script>
 </body>
