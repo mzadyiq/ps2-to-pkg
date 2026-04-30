@@ -33,8 +33,6 @@
             border: none;
             border-radius: 50px;
             cursor: pointer;
-            transition: all 0.3s;
-            font-family: 'Segoe UI', Tahoma, sans-serif;
         }
         .btn-select { background: #1a1a3e; color: #ff6b6b; border: 2px dashed #ff6b6b; }
         .btn-convert { background: #ff6b6b; color: #fff; }
@@ -44,7 +42,6 @@
             0%, 100% { box-shadow: 0 0 10px #2ed573; }
             50% { box-shadow: 0 0 30px #2ed573; }
         }
-        
         .check-panel {
             background: #0d0d1f;
             border-radius: 15px;
@@ -73,7 +70,6 @@
             font-size: 12px;
             flex-shrink: 0;
         }
-        .icon-wait { background: #333; color: #888; }
         .icon-ok { background: #1a3a1a; color: #2ed573; }
         .icon-err { background: #3a1a1a; color: #ff4757; }
         .icon-prog { background: #3a2a1a; color: #ffa502; animation: spin 1s infinite; }
@@ -83,23 +79,10 @@
         }
         .check-text { flex: 1; }
         .check-info { color: #666; font-size: 11px; }
-        
         .progress-wrap { margin: 10px 0; display: none; }
-        .progress-bar {
-            width: 100%;
-            height: 6px;
-            background: #1a1a3e;
-            border-radius: 3px;
-            overflow: hidden;
-        }
-        .progress-fill {
-            height: 100%;
-            background: #ff6b6b;
-            width: 0%;
-            transition: width 0.3s;
-        }
+        .progress-bar { width: 100%; height: 6px; background: #1a1a3e; border-radius: 3px; overflow: hidden; }
+        .progress-fill { height: 100%; background: #ff6b6b; width: 0%; transition: width 0.3s; }
         .progress-text { text-align: center; font-size: 11px; color: #888; margin-top: 5px; }
-        
         input[type="file"] { display: none; }
         .error-box {
             background: #2a0a0a;
@@ -182,8 +165,7 @@
             var icon = document.createElement('span');
             icon.className = 'check-icon';
             
-            if (status === 'wait') { icon.className += ' icon-wait'; icon.innerText = '○'; }
-            else if (status === 'ok') { icon.className += ' icon-ok'; icon.innerText = '✓'; }
+            if (status === 'ok') { icon.className += ' icon-ok'; icon.innerText = '✓'; }
             else if (status === 'err') { icon.className += ' icon-err'; icon.innerText = '✗'; }
             else if (status === 'prog') { icon.className += ' icon-prog'; icon.innerText = '↻'; }
             
@@ -227,7 +209,7 @@
                 selectedFile = e.target.files[0];
                 document.getElementById('convertBtn').disabled = false;
                 resetChecks();
-                addCheck('تم اختيار الملف: ' + selectedFile.name, 'ok', formatSize(selectedFile.size));
+                addCheck('تم اختيار: ' + selectedFile.name, 'ok', formatSize(selectedFile.size));
             }
         };
         
@@ -247,48 +229,49 @@
             xhr.upload.onprogress = function(e) {
                 if (e.lengthComputable) {
                     var percent = Math.round((e.loaded / e.total) * 50);
-                    setProgress(percent, 'رفع: ' + formatSize(e.loaded) + ' / ' + formatSize(e.total));
+                    setProgress(percent, formatSize(e.loaded) + ' / ' + formatSize(e.total));
                 }
             };
             
             xhr.onload = function() {
-                var uploadTime = ((Date.now() - startTime) / 1000).toFixed(1);
+                var time = ((Date.now() - startTime) / 1000).toFixed(1);
                 
                 document.querySelectorAll('.icon-prog').forEach(function(el) {
                     el.className = 'check-icon icon-ok';
                     el.innerText = '✓';
                 });
                 
-                addCheck('تمت المعالجة في ' + uploadTime + ' ثانية', 'ok');
-                
                 if (xhr.status === 200) {
-                    addCheck('⏳ جاري تجهيز ملف PKG...', 'prog');
-                    setProgress(80, 'تجهيز...');
+                    addCheck('اكتمل في ' + time + ' ثانية', 'ok');
                     
                     var blob = xhr.response;
-                    var encryptedSize = blob.size;
-                    
-                    document.querySelectorAll('.icon-prog').forEach(function(el) {
-                        el.className = 'check-icon icon-ok';
-                        el.innerText = '✓';
-                    });
-                    
-                    addCheck('اكتمل التحويل', 'ok');
-                    addCheck('حجم PKG: ' + formatSize(encryptedSize), 'ok');
+                    addCheck('حجم PKG: ' + formatSize(blob.size), 'ok');
                     setProgress(100, 'اكتمل!');
                     
-                    var pkgName = selectedFile.name.replace('.iso','.pkg').replace('.ISO','.pkg');
+                    // تحميل مباشر
                     var url = URL.createObjectURL(blob);
+                    var pkgName = selectedFile.name.replace('.iso','.pkg').replace('.ISO','.pkg');
+                    
+                    // زر التحميل
                     var dl = document.getElementById('downloadLink');
                     var db = document.getElementById('downloadBtn');
                     dl.href = url;
                     dl.download = pkgName;
                     db.style.display = 'block';
                     
-                    addCheck('✅ جاهز للتحميل!', 'ok');
+                    // تحميل تلقائي
+                    var a = document.createElement('a');
+                    a.href = url;
+                    a.download = pkgName;
+                    a.style.display = 'none';
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    
+                    addCheck('✅ تم بدء التحميل!', 'ok');
                 } else {
-                    addCheck('خطأ في الخادم: ' + xhr.status, 'err');
-                    showError('تأكد أن الخادم المحلي يعمل على port 3000');
+                    addCheck('خطأ: ' + xhr.status, 'err');
+                    showError('تأكد من تشغيل تطبيق PS2 Server');
                 }
                 
                 document.getElementById('convertBtn').disabled = false;
@@ -299,8 +282,8 @@
                     el.className = 'check-icon icon-err';
                     el.innerText = '✗';
                 });
-                addCheck('فشل الاتصال بالخادم المحلي', 'err');
-                showError('تأكد من تشغيل تطبيق PS2 Server أولاً');
+                addCheck('فشل الاتصال', 'err');
+                showError('تأكد من تشغيل تطبيق PS2 Server');
                 setProgress(0, 'فشل');
                 document.getElementById('convertBtn').disabled = false;
             };
