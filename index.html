@@ -111,12 +111,24 @@
             color: #ff4757;
             font-size: 13px;
         }
+        .server-url {
+            background: #0d0d1f;
+            border: 1px solid #1a1a3e;
+            border-radius: 10px;
+            padding: 10px;
+            text-align: center;
+            font-size: 12px;
+            color: #2ed573;
+            margin-bottom: 10px;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <h2>🎮 PS2 to PKG</h2>
-        <p class="sub">محول ألعاب PS2 إلى PKG | تشفير AES | يدعم الملفات الكبيرة</p>
+        <p class="sub">خادم محلي | تشفير AES | حتى 4GB</p>
+        
+        <div class="server-url">🟢 الخادم المحلي: localhost:3000</div>
         
         <button class="btn btn-select" onclick="document.getElementById('fileInput').click()">
             📁 اختر ملف ISO
@@ -148,6 +160,7 @@
 
     <script>
         var selectedFile = null;
+        var serverUrl = 'http://localhost:3000/convert';
         var checkList = document.getElementById('checkList');
         var errorBox = document.getElementById('errorBox');
         var progressWrap = document.getElementById('progressWrap');
@@ -215,11 +228,6 @@
                 document.getElementById('convertBtn').disabled = false;
                 resetChecks();
                 addCheck('تم اختيار الملف: ' + selectedFile.name, 'ok', formatSize(selectedFile.size));
-                
-                if (selectedFile.size > 2147483648) {
-                    addCheck('تحذير: حجم الملف أكبر من 2GB', 'err');
-                    document.getElementById('convertBtn').disabled = true;
-                }
             }
         };
         
@@ -229,17 +237,16 @@
             resetChecks();
             document.getElementById('convertBtn').disabled = true;
             
-            addCheck('بدء عملية التحويل...', 'ok');
-            addCheck('⏳ جاري رفع الملف...', 'prog');
-            setProgress(0, 'بدء الرفع...');
+            addCheck('بدء التحويل عبر الخادم المحلي...', 'ok');
+            addCheck('⏳ جاري معالجة الملف...', 'prog');
+            setProgress(0, 'بدء...');
             
             var xhr = new XMLHttpRequest();
             var startTime = Date.now();
             
-            // تتبع تقدم الرفع
             xhr.upload.onprogress = function(e) {
                 if (e.lengthComputable) {
-                    var percent = Math.round((e.loaded / e.total) * 50); // الرفع = 50% من العملية
+                    var percent = Math.round((e.loaded / e.total) * 50);
                     setProgress(percent, 'رفع: ' + formatSize(e.loaded) + ' / ' + formatSize(e.total));
                 }
             };
@@ -247,29 +254,27 @@
             xhr.onload = function() {
                 var uploadTime = ((Date.now() - startTime) / 1000).toFixed(1);
                 
-                // تحديث حالة الرفع
                 document.querySelectorAll('.icon-prog').forEach(function(el) {
                     el.className = 'check-icon icon-ok';
                     el.innerText = '✓';
                 });
                 
-                addCheck('تم الرفع في ' + uploadTime + ' ثانية', 'ok');
+                addCheck('تمت المعالجة في ' + uploadTime + ' ثانية', 'ok');
                 
                 if (xhr.status === 200) {
-                    addCheck('⏳ جاري التشفير على الخادم...', 'prog');
-                    setProgress(60, 'تشفير AES...');
+                    addCheck('⏳ جاري تجهيز ملف PKG...', 'prog');
+                    setProgress(80, 'تجهيز...');
                     
                     var blob = xhr.response;
                     var encryptedSize = blob.size;
-                    var ratio = ((encryptedSize / selectedFile.size) * 100).toFixed(0);
                     
                     document.querySelectorAll('.icon-prog').forEach(function(el) {
                         el.className = 'check-icon icon-ok';
                         el.innerText = '✓';
                     });
                     
-                    addCheck('اكتمل التشفير', 'ok');
-                    addCheck('حجم PKG: ' + formatSize(encryptedSize), 'ok', 'نسبة: ' + ratio + '%');
+                    addCheck('اكتمل التحويل', 'ok');
+                    addCheck('حجم PKG: ' + formatSize(encryptedSize), 'ok');
                     setProgress(100, 'اكتمل!');
                     
                     var pkgName = selectedFile.name.replace('.iso','.pkg').replace('.ISO','.pkg');
@@ -283,7 +288,7 @@
                     addCheck('✅ جاهز للتحميل!', 'ok');
                 } else {
                     addCheck('خطأ في الخادم: ' + xhr.status, 'err');
-                    showError('خطأ الخادم: ' + xhr.status);
+                    showError('تأكد أن الخادم المحلي يعمل على port 3000');
                 }
                 
                 document.getElementById('convertBtn').disabled = false;
@@ -294,25 +299,15 @@
                     el.className = 'check-icon icon-err';
                     el.innerText = '✗';
                 });
-                addCheck('فشل الاتصال بالخادم', 'err');
-                showError('تعذر الاتصال بالخادم. تأكد من الإنترنت.');
+                addCheck('فشل الاتصال بالخادم المحلي', 'err');
+                showError('تأكد من تشغيل تطبيق PS2 Server أولاً');
                 setProgress(0, 'فشل');
                 document.getElementById('convertBtn').disabled = false;
             };
             
-            xhr.ontimeout = function() {
-                document.querySelectorAll('.icon-prog').forEach(function(el) {
-                    el.className = 'check-icon icon-err';
-                    el.innerText = '✗';
-                });
-                addCheck('انتهت مهلة الانتظار', 'err');
-                showError('استغرق الرفع وقتاً طويلاً. جرب مرة أخرى.');
-                document.getElementById('convertBtn').disabled = false;
-            };
-            
-            xhr.open('POST', 'https://mouswie.pythonanywhere.com/convert', true);
+            xhr.open('POST', serverUrl, true);
             xhr.responseType = 'blob';
-            xhr.timeout = 600000; // 10 دقائق
+            xhr.timeout = 600000;
             
             var formData = new FormData();
             formData.append('iso', selectedFile);
