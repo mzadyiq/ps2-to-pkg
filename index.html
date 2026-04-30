@@ -33,6 +33,7 @@
         }
         .btn-pick { background: #0f3460; color: #e94560; border: 2px dashed #e94560; }
         .btn-convert { background: #e94560; color: white; }
+        .btn-download { background: #00b894; color: white; display: none; }
         .btn-convert:disabled { opacity: 0.4; }
         #status {
             margin-top: 15px;
@@ -41,9 +42,9 @@
             border-radius: 10px;
             font-size: 14px;
             color: #aaa;
+            word-break: break-all;
         }
         input[type="file"] { display: none; }
-        iframe { display: none; }
     </style>
 </head>
 <body>
@@ -56,55 +57,73 @@
         </button>
         <input type="file" id="fileInput" accept=".iso,.bin,.ISO,.BIN">
         
-        <form id="convertForm" method="POST" 
-              action="https://mouswie.pythonanywhere.com/convert" 
-              enctype="multipart/form-data" 
-              target="downloadFrame">
-            <input type="file" id="hiddenFile" name="iso" style="display:none;">
-            <button type="submit" class="btn-convert" id="convertBtn" disabled 
-                    onclick="startConvert()">
-                ⚡ تحويل إلى PKG
+        <button class="btn-convert" id="convertBtn" disabled onclick="convertFile()">
+            ⚡ تحويل إلى PKG
+        </button>
+        
+        <a id="downloadLink" href="#" style="text-decoration:none;">
+            <button class="btn-download" id="downloadBtn">
+                ⬇️ تحميل ملف PKG
             </button>
-        </form>
+        </a>
         
         <div id="status">👋 اختر ملف ISO للبدء</div>
     </div>
-    
-    <iframe name="downloadFrame" id="downloadFrame"></iframe>
 
     <script>
         var selectedFile = null;
+        var pkgBlobUrl = null;
         
         document.getElementById('fileInput').onchange = function(e) {
             if (e.target.files[0]) {
                 selectedFile = e.target.files[0];
                 document.getElementById('convertBtn').disabled = false;
+                document.getElementById('downloadBtn').style.display = 'none';
                 document.getElementById('status').innerText = '✅ ' + selectedFile.name;
             }
         };
         
-        function startConvert() {
-            if (!selectedFile) return false;
+        function convertFile() {
+            if (!selectedFile) return;
             
-            var dt = new DataTransfer();
-            dt.items.add(selectedFile);
-            document.getElementById('hiddenFile').files = dt.files;
+            var statusEl = document.getElementById('status');
+            var convertBtn = document.getElementById('convertBtn');
+            var downloadBtn = document.getElementById('downloadBtn');
+            var downloadLink = document.getElementById('downloadLink');
             
-            document.getElementById('status').innerText = '⏳ جاري التحويل... يرجى الانتظار';
-            document.getElementById('convertBtn').disabled = true;
+            statusEl.innerText = '⏳ جاري التحويل...';
+            convertBtn.disabled = true;
+            downloadBtn.style.display = 'none';
             
-            setTimeout(function() {
-                document.getElementById('status').innerText = '🎉 تم بنجاح! تحقق من التحميلات';
-                document.getElementById('convertBtn').disabled = false;
-            }, 5000);
+            var formData = new FormData();
+            formData.append('iso', selectedFile);
             
-            return true;
+            fetch('https://mouswie.pythonanywhere.com/convert', {
+                method: 'POST',
+                body: formData
+            })
+            .then(function(response) {
+                if (!response.ok) throw new Error('فشل الخادم');
+                return response.blob();
+            })
+            .then(function(blob) {
+                if (pkgBlobUrl) URL.revokeObjectURL(pkgBlobUrl);
+                pkgBlobUrl = URL.createObjectURL(blob);
+                
+                var pkgName = selectedFile.name.replace('.iso','.pkg').replace('.ISO','.pkg');
+                
+                downloadLink.href = pkgBlobUrl;
+                downloadLink.download = pkgName;
+                downloadBtn.style.display = 'block';
+                
+                statusEl.innerText = '🎉 تم بنجاح! اضغط الزر الأخضر';
+                convertBtn.disabled = false;
+            })
+            .catch(function(err) {
+                statusEl.innerText = '❌ ' + err.message;
+                convertBtn.disabled = false;
+            });
         }
-        
-        document.getElementById('downloadFrame').onload = function() {
-            document.getElementById('status').innerText = '🎉 تم بنجاح! تحقق من التحميلات';
-            document.getElementById('convertBtn').disabled = false;
-        };
     </script>
 </body>
 </html>
