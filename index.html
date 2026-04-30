@@ -38,6 +38,11 @@
             background: #e94560;
             color: white;
         }
+        .btn-download {
+            background: #4CAF50;
+            color: white;
+            display: none;
+        }
         .btn-convert:disabled {
             opacity: 0.5;
             cursor: not-allowed;
@@ -69,22 +74,25 @@
             ⚡ تحويل إلى PKG
         </button>
         
+        <br>
+        
+        <a id="downloadLink" style="display:none;">
+            <button class="btn-download" id="downloadBtn">⬇️ تحميل ملف PKG</button>
+        </a>
+        
         <div id="status">👋 جاهز للتحويل</div>
     </div>
 
-    <form id="hiddenForm" method="POST" action="https://mouswie.pythonanywhere.com/convert" enctype="multipart/form-data" target="hiddenFrame" style="display:none;">
-        <input type="file" id="hiddenFile" name="iso">
-    </form>
-    <iframe name="hiddenFrame" style="display:none;"></iframe>
-
     <script>
         var selected = null;
+        var pkgUrl = null;
         
         document.getElementById('file').onchange = function(e) {
             if (e.target.files[0]) {
                 selected = e.target.files[0];
                 document.getElementById('convertBtn').disabled = false;
                 document.getElementById('status').innerText = '✅ ' + selected.name;
+                document.getElementById('downloadLink').style.display = 'none';
             }
         };
         
@@ -96,19 +104,37 @@
             s.innerText = '⏳ جاري التحويل...';
             b.disabled = true;
             
-            // نسخ الملف إلى الفورم المخفي
-            var dt = new DataTransfer();
-            dt.items.add(selected);
-            document.getElementById('hiddenFile').files = dt.files;
+            var fd = new FormData();
+            fd.append('iso', selected);
             
-            // إرسال الفورم
-            document.getElementById('hiddenForm').submit();
+            var xhr = new XMLHttpRequest();
+            xhr.open('POST', 'https://mouswie.pythonanywhere.com/convert', true);
+            xhr.responseType = 'blob';
             
-            // انتظار التحميل
-            setTimeout(function() {
-                s.innerText = '✅ تم بنجاح! (تحقق من التحميلات)';
+            xhr.onload = function() {
+                if (xhr.status === 200) {
+                    var blob = xhr.response;
+                    pkgUrl = URL.createObjectURL(blob);
+                    
+                    var dl = document.getElementById('downloadLink');
+                    dl.href = pkgUrl;
+                    dl.download = selected.name.replace('.iso','.pkg').replace('.ISO','.pkg');
+                    dl.style.display = 'inline-block';
+                    
+                    s.innerText = '✅ تم بنجاح! اضغط تحميل';
+                    b.disabled = false;
+                } else {
+                    s.innerText = '❌ خطأ في الخادم';
+                    b.disabled = false;
+                }
+            };
+            
+            xhr.onerror = function() {
+                s.innerText = '❌ فشل الاتصال بالخادم';
                 b.disabled = false;
-            }, 3000);
+            };
+            
+            xhr.send(fd);
         }
     </script>
 </body>
