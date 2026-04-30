@@ -21,18 +21,8 @@
             padding: 25px;
             border: 1px solid #222244;
         }
-        h2 {
-            text-align: center;
-            color: #ff6b6b;
-            font-size: 26px;
-            margin-bottom: 5px;
-        }
-        .sub {
-            text-align: center;
-            color: #666;
-            font-size: 13px;
-            margin-bottom: 20px;
-        }
+        h2 { text-align: center; color: #ff6b6b; font-size: 26px; margin-bottom: 5px; }
+        .sub { text-align: center; color: #666; font-size: 13px; margin-bottom: 20px; }
         .btn {
             display: block;
             width: 100%;
@@ -46,46 +36,25 @@
             transition: all 0.3s;
             font-family: 'Segoe UI', Tahoma, sans-serif;
         }
-        .btn-select {
-            background: #1a1a3e;
-            color: #ff6b6b;
-            border: 2px dashed #ff6b6b;
-        }
-        .btn-select:hover { background: #252550; }
-        .btn-convert {
-            background: #ff6b6b;
-            color: #fff;
-        }
-        .btn-convert:disabled {
-            background: #444;
-            cursor: not-allowed;
-        }
-        .btn-download {
-            background: #2ed573;
-            color: #fff;
-            display: none;
-            animation: glow 1.5s infinite;
-        }
+        .btn-select { background: #1a1a3e; color: #ff6b6b; border: 2px dashed #ff6b6b; }
+        .btn-convert { background: #ff6b6b; color: #fff; }
+        .btn-convert:disabled { background: #444; cursor: not-allowed; }
+        .btn-download { background: #2ed573; color: #fff; display: none; animation: glow 1.5s infinite; }
         @keyframes glow {
             0%, 100% { box-shadow: 0 0 10px #2ed573; }
             50% { box-shadow: 0 0 30px #2ed573; }
         }
         
-        /* لوحة التحقق */
         .check-panel {
             background: #0d0d1f;
             border-radius: 15px;
             padding: 15px;
             margin: 15px 0;
             border: 1px solid #1a1a3e;
+            max-height: 300px;
+            overflow-y: auto;
         }
-        .check-title {
-            color: #ff6b6b;
-            font-size: 14px;
-            font-weight: bold;
-            margin-bottom: 10px;
-            text-align: center;
-        }
+        .check-title { color: #ff6b6b; font-size: 14px; font-weight: bold; margin-bottom: 10px; text-align: center; }
         .check-item {
             display: flex;
             align-items: center;
@@ -115,11 +84,7 @@
         .check-text { flex: 1; }
         .check-info { color: #666; font-size: 11px; }
         
-        /* شريط التقدم */
-        .progress-wrap {
-            margin: 10px 0;
-            display: none;
-        }
+        .progress-wrap { margin: 10px 0; display: none; }
         .progress-bar {
             width: 100%;
             height: 6px;
@@ -131,14 +96,9 @@
             height: 100%;
             background: #ff6b6b;
             width: 0%;
-            transition: width 0.5s;
+            transition: width 0.3s;
         }
-        .progress-text {
-            text-align: center;
-            font-size: 11px;
-            color: #888;
-            margin-top: 5px;
-        }
+        .progress-text { text-align: center; font-size: 11px; color: #888; margin-top: 5px; }
         
         input[type="file"] { display: none; }
         .error-box {
@@ -156,7 +116,7 @@
 <body>
     <div class="container">
         <h2>🎮 PS2 to PKG</h2>
-        <p class="sub">محول ألعاب PS2 إلى PKG | تشفير AES</p>
+        <p class="sub">محول ألعاب PS2 إلى PKG | تشفير AES | يدعم الملفات الكبيرة</p>
         
         <button class="btn btn-select" onclick="document.getElementById('fileInput').click()">
             📁 اختر ملف ISO
@@ -173,7 +133,6 @@
             </button>
         </a>
         
-        <!-- لوحة الفحص -->
         <div class="check-panel" id="checkPanel">
             <div class="check-title">📋 سجل العمليات</div>
             <div id="checkList"></div>
@@ -210,19 +169,10 @@
             var icon = document.createElement('span');
             icon.className = 'check-icon';
             
-            if (status === 'wait') {
-                icon.className += ' icon-wait';
-                icon.innerText = '○';
-            } else if (status === 'ok') {
-                icon.className += ' icon-ok';
-                icon.innerText = '✓';
-            } else if (status === 'err') {
-                icon.className += ' icon-err';
-                icon.innerText = '✗';
-            } else if (status === 'prog') {
-                icon.className += ' icon-prog';
-                icon.innerText = '↻';
-            }
+            if (status === 'wait') { icon.className += ' icon-wait'; icon.innerText = '○'; }
+            else if (status === 'ok') { icon.className += ' icon-ok'; icon.innerText = '✓'; }
+            else if (status === 'err') { icon.className += ' icon-err'; icon.innerText = '✗'; }
+            else if (status === 'prog') { icon.className += ' icon-prog'; icon.innerText = '↻'; }
             
             var textSpan = document.createElement('span');
             textSpan.className = 'check-text';
@@ -239,36 +189,18 @@
             div.appendChild(icon);
             div.appendChild(textSpan);
             checkList.appendChild(div);
-            
-            // التمرير لآخر عنصر
-            checkList.parentElement.scrollTop = checkList.parentElement.scrollHeight;
         }
         
         function setProgress(percent, text) {
             progressWrap.style.display = 'block';
             progressFill.style.width = percent + '%';
-            progressText.innerText = text || '';
+            if (text) progressText.innerText = text;
         }
         
         function showError(msg) {
             errorBox.style.display = 'block';
             errorBox.innerText = '❌ ' + msg;
         }
-        
-        // اختيار الملف
-        document.getElementById('fileInput').onchange = function(e) {
-            if (e.target.files[0]) {
-                selectedFile = e.target.files[0];
-                document.getElementById('convertBtn').disabled = false;
-                resetChecks();
-                addCheck('تم اختيار الملف: ' + selectedFile.name, 'ok', formatSize(selectedFile.size));
-                
-                if (selectedFile.size > 2147483648) {
-                    addCheck('تحذير: حجم الملف كبير جداً (أكثر من 2GB)', 'err');
-                    document.getElementById('convertBtn').disabled = true;
-                }
-            }
-        };
         
         function formatSize(bytes) {
             if (bytes < 1024) return bytes + ' B';
@@ -277,73 +209,69 @@
             return (bytes / 1073741824).toFixed(2) + ' GB';
         }
         
+        document.getElementById('fileInput').onchange = function(e) {
+            if (e.target.files[0]) {
+                selectedFile = e.target.files[0];
+                document.getElementById('convertBtn').disabled = false;
+                resetChecks();
+                addCheck('تم اختيار الملف: ' + selectedFile.name, 'ok', formatSize(selectedFile.size));
+                
+                if (selectedFile.size > 2147483648) {
+                    addCheck('تحذير: حجم الملف أكبر من 2GB', 'err');
+                    document.getElementById('convertBtn').disabled = true;
+                }
+            }
+        };
+        
         function startConvert() {
             if (!selectedFile) return;
             
             resetChecks();
             document.getElementById('convertBtn').disabled = true;
             
-            // المرحلة 1: تجهيز الملف
-            addCheck('فحص الملف...', 'prog');
-            setProgress(5, 'جاري الفحص...');
+            addCheck('بدء عملية التحويل...', 'ok');
+            addCheck('⏳ جاري رفع الملف...', 'prog');
+            setProgress(0, 'بدء الرفع...');
             
-            setTimeout(function() {
+            var xhr = new XMLHttpRequest();
+            var startTime = Date.now();
+            
+            // تتبع تقدم الرفع
+            xhr.upload.onprogress = function(e) {
+                if (e.lengthComputable) {
+                    var percent = Math.round((e.loaded / e.total) * 50); // الرفع = 50% من العملية
+                    setProgress(percent, 'رفع: ' + formatSize(e.loaded) + ' / ' + formatSize(e.total));
+                }
+            };
+            
+            xhr.onload = function() {
+                var uploadTime = ((Date.now() - startTime) / 1000).toFixed(1);
+                
+                // تحديث حالة الرفع
                 document.querySelectorAll('.icon-prog').forEach(function(el) {
                     el.className = 'check-icon icon-ok';
                     el.innerText = '✓';
                 });
-                addCheck('الملف جاهز: ' + formatSize(selectedFile.size), 'ok');
-                setProgress(10, 'تم الفحص');
                 
-                // المرحلة 2: رفع الملف
-                addCheck('⏳ جاري رفع الملف إلى الخادم...', 'prog');
-                setProgress(15, 'رفع الملف...');
+                addCheck('تم الرفع في ' + uploadTime + ' ثانية', 'ok');
                 
-                var fd = new FormData();
-                fd.append('iso', selectedFile);
-                
-                var startTime = Date.now();
-                
-                fetch('https://mouswie.pythonanywhere.com/convert', {
-                    method: 'POST',
-                    body: fd,
-                    signal: AbortSignal.timeout(600000)
-                })
-                .then(function(response) {
-                    var uploadTime = ((Date.now() - startTime) / 1000).toFixed(1);
-                    
-                    document.querySelectorAll('.icon-prog').forEach(function(el) {
-                        el.className = 'check-icon icon-ok';
-                        el.innerText = '✓';
-                    });
-                    
-                    addCheck('تم الرفع في ' + uploadTime + ' ثانية', 'ok');
-                    setProgress(50, 'الخادم يستلم الملف...');
-                    
-                    if (!response.ok) {
-                        throw new Error('خطأ في الخادم: ' + response.status);
-                    }
-                    
-                    // المرحلة 3: الخادم يعالج
-                    addCheck('⏳ جاري التشفير والمعالجة على الخادم...', 'prog');
+                if (xhr.status === 200) {
+                    addCheck('⏳ جاري التشفير على الخادم...', 'prog');
                     setProgress(60, 'تشفير AES...');
                     
-                    return response.blob();
-                })
-                .then(function(blob) {
+                    var blob = xhr.response;
+                    var encryptedSize = blob.size;
+                    var ratio = ((encryptedSize / selectedFile.size) * 100).toFixed(0);
+                    
                     document.querySelectorAll('.icon-prog').forEach(function(el) {
                         el.className = 'check-icon icon-ok';
                         el.innerText = '✓';
                     });
-                    
-                    var encryptedSize = blob.size;
-                    var ratio = ((encryptedSize / selectedFile.size) * 100).toFixed(0);
                     
                     addCheck('اكتمل التشفير', 'ok');
                     addCheck('حجم PKG: ' + formatSize(encryptedSize), 'ok', 'نسبة: ' + ratio + '%');
                     setProgress(100, 'اكتمل!');
                     
-                    // تحميل
                     var pkgName = selectedFile.name.replace('.iso','.pkg').replace('.ISO','.pkg');
                     var url = URL.createObjectURL(blob);
                     var dl = document.getElementById('downloadLink');
@@ -353,21 +281,42 @@
                     db.style.display = 'block';
                     
                     addCheck('✅ جاهز للتحميل!', 'ok');
-                    document.getElementById('convertBtn').disabled = false;
-                })
-                .catch(function(err) {
-                    document.querySelectorAll('.icon-prog').forEach(function(el) {
-                        el.className = 'check-icon icon-err';
-                        el.innerText = '✗';
-                    });
-                    
-                    addCheck('فشل: ' + err.message, 'err');
-                    showError(err.message);
-                    setProgress(0, 'فشل');
-                    document.getElementById('convertBtn').disabled = false;
-                });
+                } else {
+                    addCheck('خطأ في الخادم: ' + xhr.status, 'err');
+                    showError('خطأ الخادم: ' + xhr.status);
+                }
                 
-            }, 500);
+                document.getElementById('convertBtn').disabled = false;
+            };
+            
+            xhr.onerror = function() {
+                document.querySelectorAll('.icon-prog').forEach(function(el) {
+                    el.className = 'check-icon icon-err';
+                    el.innerText = '✗';
+                });
+                addCheck('فشل الاتصال بالخادم', 'err');
+                showError('تعذر الاتصال بالخادم. تأكد من الإنترنت.');
+                setProgress(0, 'فشل');
+                document.getElementById('convertBtn').disabled = false;
+            };
+            
+            xhr.ontimeout = function() {
+                document.querySelectorAll('.icon-prog').forEach(function(el) {
+                    el.className = 'check-icon icon-err';
+                    el.innerText = '✗';
+                });
+                addCheck('انتهت مهلة الانتظار', 'err');
+                showError('استغرق الرفع وقتاً طويلاً. جرب مرة أخرى.');
+                document.getElementById('convertBtn').disabled = false;
+            };
+            
+            xhr.open('POST', 'https://mouswie.pythonanywhere.com/convert', true);
+            xhr.responseType = 'blob';
+            xhr.timeout = 600000; // 10 دقائق
+            
+            var formData = new FormData();
+            formData.append('iso', selectedFile);
+            xhr.send(formData);
         }
     </script>
 </body>
