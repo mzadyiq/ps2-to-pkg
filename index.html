@@ -34,9 +34,9 @@
             border: none;
             border-radius: 50px;
             cursor: pointer;
-            transition: all 0.3s;
             font-family: 'Tahoma', sans-serif;
             text-align: center;
+            text-decoration: none;
         }
         .btn-select {
             background: transparent;
@@ -47,9 +47,11 @@
             background: #e94560;
             color: white;
         }
-        .btn-convert:disabled {
-            background: #555;
-            cursor: not-allowed;
+        .btn-convert:disabled { background: #555; cursor: not-allowed; }
+        .btn-download {
+            background: #00b894;
+            color: white;
+            display: none;
         }
         .status-box {
             background: rgba(0,0,0,0.3);
@@ -66,7 +68,6 @@
         .status-box .emoji { font-size: 40px; }
         .status-box .text { color: #ccc; font-size: 15px; margin-top: 5px; }
         input[type="file"] { display: none; }
-        iframe { display: none; }
     </style>
 </head>
 <body>
@@ -86,18 +87,13 @@
         </div>
         
         <div class="card">
-            <form id="convertForm" method="POST" 
-                  action="https://mouswie.pythonanywhere.com/convert" 
-                  enctype="multipart/form-data" 
-                  target="resultFrame">
-                
-                <input type="file" id="hiddenFile" name="iso" style="display:none;">
-                
-                <button type="submit" class="btn btn-convert" id="convertBtn" disabled 
-                        onclick="return startConvert()">
-                    ⚡ ابدأ التحويل
-                </button>
-            </form>
+            <button class="btn btn-convert" id="convertBtn" disabled onclick="convertFile()">
+                ⚡ ابدأ التحويل
+            </button>
+            
+            <a id="downloadLink" href="#" class="btn btn-download" download="">
+                ⬇️ تحميل ملف PKG
+            </a>
         </div>
         
         <div class="status-box" id="statusBox">
@@ -106,8 +102,6 @@
         </div>
         
     </div>
-    
-    <iframe name="resultFrame" id="resultFrame"></iframe>
 
     <script>
         var selectedFile = null;
@@ -116,36 +110,56 @@
             if (e.target.files[0]) {
                 selectedFile = e.target.files[0];
                 document.getElementById('convertBtn').disabled = false;
+                document.getElementById('downloadLink').style.display = 'none';
                 document.getElementById('statusBox').innerHTML = 
                     '<span class="emoji">✅</span>' +
                     '<span class="text">تم اختيار: ' + selectedFile.name + '</span>';
             }
         };
         
-        function startConvert() {
-            if (!selectedFile) return false;
+        function convertFile() {
+            if (!selectedFile) return;
             
-            // نسخ الملف إلى input المخفي
-            var dt = new DataTransfer();
-            dt.items.add(selectedFile);
-            document.getElementById('hiddenFile').files = dt.files;
+            var statusBox = document.getElementById('statusBox');
+            var convertBtn = document.getElementById('convertBtn');
+            var downloadLink = document.getElementById('downloadLink');
             
-            document.getElementById('statusBox').innerHTML = 
+            statusBox.innerHTML = 
                 '<span class="emoji">⏳</span>' +
-                '<span class="text">جاري التحويل... سيبدأ التحميل تلقائياً</span>';
+                '<span class="text">جاري التحويل... يرجى الانتظار</span>';
+            convertBtn.disabled = true;
             
-            return true;
-        }
-        
-        // استقبال نتيجة التحميل
-        document.getElementById('resultFrame').onload = function() {
-            setTimeout(function() {
-                document.getElementById('statusBox').innerHTML = 
+            var formData = new FormData();
+            formData.append('iso', selectedFile);
+            
+            fetch('https://mouswie.pythonanywhere.com/convert', {
+                method: 'POST',
+                body: formData
+            })
+            .then(function(response) {
+                if (!response.ok) throw new Error('خطأ في الخادم');
+                return response.blob();
+            })
+            .then(function(blob) {
+                var url = URL.createObjectURL(blob);
+                var pkgName = selectedFile.name.replace('.iso','.pkg').replace('.ISO','.pkg');
+                
+                downloadLink.href = url;
+                downloadLink.download = pkgName;
+                downloadLink.style.display = 'block';
+                
+                statusBox.innerHTML = 
                     '<span class="emoji">🎉</span>' +
-                    '<span class="text">تم التحويل بنجاح!<br>تحقق من التحميلات</span>';
-                document.getElementById('convertBtn').disabled = false;
-            }, 2000);
-        };
+                    '<span class="text">تم بنجاح! اضغط الزر الأخضر للتحميل</span>';
+                convertBtn.disabled = false;
+            })
+            .catch(function(err) {
+                statusBox.innerHTML = 
+                    '<span class="emoji">❌</span>' +
+                    '<span class="text">' + err.message + '</span>';
+                convertBtn.disabled = false;
+            });
+        }
     </script>
 </body>
 </html>
