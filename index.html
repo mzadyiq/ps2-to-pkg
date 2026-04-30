@@ -72,7 +72,7 @@
 <body>
     <div class="box">
         <h2>🎮 PS2 to PKG</h2>
-        <p style="color:#888;font-size:12px;">خادم سحابي | رفع متقطع | AES</p>
+        <p style="color:#888;font-size:12px;">خادم سحابي | 25MB للقطعة | AES</p>
         
         <button class="btn-select" onclick="document.getElementById('fileInput').click()">
             📁 اختر ملف ISO
@@ -92,9 +92,12 @@
     </div>
 
     <script>
-        var CHUNK_SIZE = 5 * 1024 * 1024; // 5MB لكل قطعة
+        var CHUNK_SIZE = 25 * 1024 * 1024; // 25MB
         var serverUrl = 'https://mouswie.pythonanywhere.com/convert';
         var selectedFile = null;
+        var currentChunk = 0;
+        var totalChunks = 0;
+        var failed = false;
         
         function log(msg, cls) {
             var d = document.getElementById('log');
@@ -112,90 +115,95 @@
                 selectedFile = e.target.files[0];
                 document.getElementById('convertBtn').disabled = false;
                 document.getElementById('log').innerHTML = '';
-                log('✅ تم اختيار: ' + selectedFile.name, 'ok');
-                log('📦 الحجم: ' + (selectedFile.size/1048576).toFixed(1) + ' MB', 'info');
-                log('🧩 عدد القطع: ' + Math.ceil(selectedFile.size/CHUNK_SIZE), 'info');
+                document.getElementById('dbtn').style.display = 'none';
+                setProgress(0);
+                log('✅ ' + selectedFile.name, 'ok');
+                log('📦 ' + (selectedFile.size/1048576).toFixed(1) + ' MB', 'info');
+                totalChunks = Math.ceil(selectedFile.size / CHUNK_SIZE);
+                log('🧩 ' + totalChunks + ' قطعة (25MB لكل قطعة)', 'info');
             }
         };
         
         function startUpload() {
             if (!selectedFile) return;
             
-            var totalChunks = Math.ceil(selectedFile.size / CHUNK_SIZE);
-            var allChunks = new Array(totalChunks);
-            var uploaded = 0;
-            var failed = false;
+            currentChunk = 0;
+            totalChunks = Math.ceil(selectedFile.size / CHUNK_SIZE);
+            failed = false;
             
             document.getElementById('convertBtn').disabled = true;
             document.getElementById('dbtn').style.display = 'none';
             document.getElementById('log').innerHTML = '';
             
-            log('🚀 بدء الرفع المتقطع...', 'info');
-            log('0 / ' + totalChunks + ' قطعة', 'info');
+            log('🚀 بدء الرفع...', 'info');
             
-            function uploadChunk(index) {
-                if (failed) return;
-                
-                var start = index * CHUNK_SIZE;
-                var end = Math.min(start + CHUNK_SIZE, selectedFile.size);
-                var chunk = selectedFile.slice(start, end);
-                
-                var fd = new FormData();
-                fd.append('chunk', chunk);
-                fd.append('index', index);
-                fd.append('total', totalChunks);
-                fd.append('filename', selectedFile.name);
-                
-                fetch(serverUrl, { method: 'POST', body: fd })
-                .then(function(r) {
-                    if (!r.ok) throw new Error('خطأ ' + r.status);
-                    return r.text();
-                })
-                .then(function(txt) {
-                    if (txt === 'DONE') {
-                        // كل القطع تم تجميعها
-                        log('✅ تم تجميع كل القطع!', 'ok');
-                        log('⏳ جاري التشفير...', 'info');
-                        setProgress(95);
-                        
-                        // طلب الملف النهائي
-                        fetch(serverUrl + '?final=1&filename=' + encodeURIComponent(selectedFile.name))
-                        .then(function(r) { return r.blob(); })
-                        .then(function(blob) {
-                            var url = URL.createObjectURL(blob);
-                            var dl = document.getElementById('dl');
-                            dl.href = url;
-                            dl.download = selectedFile.name.replace('.iso','.pkg').replace('.ISO','.pkg');
-                            document.getElementById('dbtn').style.display = 'block';
-                            log('🎉 تم بنجاح! حجم PKG: ' + (blob.size/1048576).toFixed(1) + ' MB', 'ok');
-                            setProgress(100);
-                            document.getElementById('convertBtn').disabled = false;
-                        })
-                        .catch(function(e) {
-                            log('❌ فشل التحميل النهائي: ' + e.message, 'err');
-                            document.getElementById('convertBtn').disabled = false;
-                        });
-                    } else {
-                        uploaded++;
-                        var pct = Math.round((uploaded / totalChunks) * 90);
-                        setProgress(pct);
-                        log('📤 قطعة ' + (index+1) + ' / ' + totalChunks + ' (' + pct + '%)', 'info');
-                        
-                        if (uploaded < totalChunks && !failed) {
-                            uploadChunk(index + 1);
-                        }
+            uploadNext();
+        }
+        
+        function uploadNext() {
+            if (failed || currentChunk >= totalChunks) return;
+            
+            var start = currentChunk * CHUNK_SIZE;
+            var end = Math.min(start + CHUNK_SIZE, selectedFile.size);
+            var chunk = selectedFile.slice(start, end);
+            var sizeMB = ((end - start) / 1048576).toFixed(1);
+            
+            var fd = new FormData();
+            fd.append('chunk', chunk);
+            fd.append('index', currentChunk);
+            fd.append('total', totalChunks);
+            fd.append('filename', selectedFile.name);
+            
+            log('📤 قطعة ' + (currentChunk+1) + '/' + totalChunks + ' (' + sizeMB + 'MB)...', 'info');
+            
+            fetch(serverUrl, { method: 'POST', body: fd })
+            .then(function(r) {
+                if (!r.ok) throw new Error('خطأ ' + r.status);
+                return r.text();
+            })
+            .then(function(txt) {
+                if (txt === 'DONE') {
+                    // تم تجميع كل القطع
+                    log('✅ تم رفع كل القطع!', 'ok');
+                    log('⏳ جاري التشفير والتجهيز...', 'info');
+                    setProgress(95);
+                    
+                    // جلب الملف النهائي
+                    fetch(serverUrl + '?final=1&filename=' + encodeURIComponent(selectedFile.name))
+                    .then(function(r) { return r.blob(); })
+                    .then(function(blob) {
+                        var url = URL.createObjectURL(blob);
+                        document.getElementById('dl').href = url;
+                        document.getElementById('dl').download = selectedFile.name.replace('.iso','.pkg').replace('.ISO','.pkg');
+                        document.getElementById('dbtn').style.display = 'block';
+                        log('🎉 تم بنجاح! ' + (blob.size/1048576).toFixed(1) + ' MB', 'ok');
+                        setProgress(100);
+                        document.getElementById('convertBtn').disabled = false;
+                    })
+                    .catch(function(e) {
+                        log('❌ فشل التحميل: ' + e.message, 'err');
+                        document.getElementById('convertBtn').disabled = false;
+                    });
+                } else {
+                    // قطعة تم استلامها
+                    currentChunk++;
+                    var pct = Math.round((currentChunk / totalChunks) * 90);
+                    setProgress(pct);
+                    log('✅ تم استلام القطعة ' + currentChunk + '/' + totalChunks, 'ok');
+                    
+                    // إرسال القطعة التالية
+                    if (currentChunk < totalChunks) {
+                        uploadNext();
                     }
-                })
-                .catch(function(e) {
-                    failed = true;
-                    log('❌ فشل في القطعة ' + (index+1) + ': ' + e.message, 'err');
-                    log('🔄 حاول مرة أخرى', 'info');
-                    document.getElementById('convertBtn').disabled = false;
-                    setProgress(0);
-                });
-            }
-            
-            uploadChunk(0);
+                }
+            })
+            .catch(function(e) {
+                failed = true;
+                log('❌ فشل القطعة ' + (currentChunk+1) + ': ' + e.message, 'err');
+                log('🔄 جرب مرة أخرى', 'info');
+                document.getElementById('convertBtn').disabled = false;
+                setProgress(0);
+            });
         }
     </script>
 </body>
