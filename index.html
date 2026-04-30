@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<html lang="ar">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PS2 to PKG</title>
+    <title>اختبار PS2 to PKG</title>
     <style>
         body {
             font-family: sans-serif;
@@ -18,7 +18,6 @@
             padding: 30px;
             max-width: 400px;
             margin: 0 auto;
-            border: 1px solid #2a2a4a;
         }
         h2 { color: #e94560; }
         button {
@@ -34,88 +33,32 @@
         .btn-pick { background: #0f3460; color: #e94560; border: 2px dashed #e94560; }
         .btn-convert { background: #e94560; color: white; }
         .btn-convert:disabled { opacity: 0.4; }
-        
         #status {
             margin-top: 15px;
             padding: 15px;
             background: #0f0f1a;
             border-radius: 10px;
-            font-size: 13px;
+            font-size: 14px;
             color: #aaa;
         }
-        
-        .progress-box {
-            margin-top: 15px;
-            padding: 15px;
-            background: #0f0f1a;
-            border-radius: 10px;
-            display: none;
-        }
-        .progress-bar {
-            width: 100%;
-            height: 8px;
-            background: #2a2a4a;
-            border-radius: 4px;
-            overflow: hidden;
-            margin: 10px 0;
-        }
-        .progress-fill {
-            height: 100%;
-            width: 0%;
-            background: #e94560;
-            transition: width 0.3s;
-            animation: pulse 1.5s infinite;
-        }
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
-        }
-        .step { font-size: 12px; color: #888; margin: 3px 0; }
-        .step.done { color: #00b894; }
-        .step.active { color: #e94560; }
-        
         input[type="file"] { display: none; }
-        iframe { display: none; }
     </style>
 </head>
 <body>
     <div class="box">
-        <h2>🎮 PS2 to PKG</h2>
-        <p style="color:#888;margin-bottom:15px">محول PS2 ISO إلى PKG</p>
+        <h2>🎮 اختبار التحويل</h2>
         
         <button class="btn-pick" onclick="document.getElementById('fileInput').click()">
-            📁 اختر ملف ISO
+            📁 اختر ملف
         </button>
-        <input type="file" id="fileInput" accept=".iso,.bin,.ISO,.BIN">
+        <input type="file" id="fileInput">
         
-        <form id="convertForm" method="POST" 
-              action="https://mouswie.pythonanywhere.com/convert" 
-              enctype="multipart/form-data" 
-              target="downloadFrame">
-            <input type="file" id="hiddenFile" name="iso" style="display:none;">
-            <button type="submit" class="btn-convert" id="convertBtn" disabled 
-                    onclick="startConvert()">
-                ⚡ تحويل إلى PKG
-            </button>
-        </form>
+        <button class="btn-convert" id="convertBtn" disabled onclick="uploadFile()">
+            ⚡ رفع الملف
+        </button>
         
-        <!-- صندوق مراحل التقدم -->
-        <div class="progress-box" id="progressBox">
-            <div style="color:#fff;font-weight:bold;margin-bottom:10px;">📊 مراحل التحويل</div>
-            <div class="progress-bar">
-                <div class="progress-fill" id="progressFill"></div>
-            </div>
-            <div id="step1" class="step">⏸️ 1. تجهيز الملف</div>
-            <div id="step2" class="step">⏸️ 2. رفع الملف إلى الخادم</div>
-            <div id="step3" class="step">⏸️ 3. تشفير AES</div>
-            <div id="step4" class="step">⏸️ 4. تجهيز ملف PKG</div>
-            <div id="step5" class="step">⏸️ 5. بدء التحميل</div>
-        </div>
-        
-        <div id="status">👋 اختر ملف ISO للبدء</div>
+        <div id="status">👋 اختر ملف للبدء</div>
     </div>
-    
-    <iframe name="downloadFrame" id="downloadFrame"></iframe>
 
     <script>
         var selectedFile = null;
@@ -124,82 +67,39 @@
             if (e.target.files[0]) {
                 selectedFile = e.target.files[0];
                 document.getElementById('convertBtn').disabled = false;
-                document.getElementById('status').innerText = '✅ ' + selectedFile.name + ' (' + formatSize(selectedFile.size) + ')';
-                document.getElementById('progressBox').style.display = 'none';
+                document.getElementById('status').innerText = '✅ ' + selectedFile.name;
             }
         };
         
-        function formatSize(bytes) {
-            if (bytes < 1024) return bytes + ' B';
-            if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
-            if (bytes < 1073741824) return (bytes / 1048576).toFixed(1) + ' MB';
-            return (bytes / 1073741824).toFixed(2) + ' GB';
+        function uploadFile() {
+            if (!selectedFile) return;
+            
+            var statusEl = document.getElementById('status');
+            var btn = document.getElementById('convertBtn');
+            
+            statusEl.innerText = '⏳ جاري الرفع...';
+            btn.disabled = true;
+            
+            var formData = new FormData();
+            formData.append('iso', selectedFile);
+            
+            fetch('https://mouswie.pythonanywhere.com/convert', {
+                method: 'POST',
+                body: formData
+            })
+            .then(function(response) {
+                statusEl.innerText = '✅ استجابة: ' + response.status;
+                return response.blob();
+            })
+            .then(function(blob) {
+                statusEl.innerText = '✅ تم! حجم الملف المستلم: ' + blob.size + ' bytes';
+                btn.disabled = false;
+            })
+            .catch(function(err) {
+                statusEl.innerText = '❌ خطأ: ' + err.message;
+                btn.disabled = false;
+            });
         }
-        
-        function startConvert() {
-            if (!selectedFile) return false;
-            
-            var dt = new DataTransfer();
-            dt.items.add(selectedFile);
-            document.getElementById('hiddenFile').files = dt.files;
-            
-            document.getElementById('status').innerText = '⏳ جاري العمل...';
-            document.getElementById('convertBtn').disabled = true;
-            
-            // إظهار صندوق التقدم
-            showProgress();
-            
-            return true;
-        }
-        
-        function showProgress() {
-            var box = document.getElementById('progressBox');
-            box.style.display = 'block';
-            
-            updateStep('step1', 'active', '⏳ 1. تجهيز الملف...');
-            setProgress(10);
-            
-            setTimeout(function() {
-                updateStep('step1', 'done', '✅ 1. تم تجهيز الملف');
-                updateStep('step2', 'active', '⏳ 2. رفع الملف إلى الخادم...');
-                setProgress(25);
-            }, 1000);
-            
-            setTimeout(function() {
-                updateStep('step2', 'done', '✅ 2. تم الرفع');
-                updateStep('step3', 'active', '⏳ 3. تشفير AES... (قد يستغرق وقتاً)');
-                setProgress(50);
-            }, 3000);
-            
-            setTimeout(function() {
-                updateStep('step3', 'done', '✅ 3. اكتمل التشفير');
-                updateStep('step4', 'active', '⏳ 4. تجهيز ملف PKG...');
-                setProgress(80);
-            }, 8000);
-            
-            setTimeout(function() {
-                updateStep('step4', 'done', '✅ 4. تم تجهيز ملف PKG');
-                updateStep('step5', 'active', '⏳ 5. بدء التحميل...');
-                setProgress(95);
-            }, 10000);
-        }
-        
-        function updateStep(id, cls, text) {
-            var el = document.getElementById(id);
-            el.className = 'step ' + cls;
-            el.innerText = text;
-        }
-        
-        function setProgress(percent) {
-            document.getElementById('progressFill').style.width = percent + '%';
-        }
-        
-        document.getElementById('downloadFrame').onload = function() {
-            updateStep('step5', 'done', '✅ 5. اكتمل! تحقق من التحميلات');
-            setProgress(100);
-            document.getElementById('status').innerText = '🎉 تم بنجاح! تحقق من التحميلات';
-            document.getElementById('convertBtn').disabled = false;
-        };
     </script>
 </body>
 </html>
