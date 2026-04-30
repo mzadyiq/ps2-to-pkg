@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PS2 to PKG</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            background: #0f0f1a;
+            color: white;
+            text-align: center;
+            padding: 30px;
+        }
+        .box {
+            background: #1a1a2e;
+            border-radius: 15px;
+            padding: 30px;
+            max-width: 400px;
+            margin: 0 auto;
+        }
+        h2 { color: #e94560; }
+        button {
+            padding: 15px 30px;
+            margin: 10px;
+            font-size: 16px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .btn-pick {
+            background: #16213e;
+            color: #e94560;
+            border: 2px solid #e94560;
+        }
+        .btn-convert {
+            background: #e94560;
+            color: white;
+        }
+        .btn-convert:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        #status {
+            margin-top: 20px;
+            padding: 15px;
+            background: #0f0f1a;
+            border-radius: 10px;
+            color: #aaa;
+            min-height: 50px;
+        }
+        input[type="file"] { display: none; }
+    </style>
+</head>
+<body>
+    <div class="box">
+        <h2>🎮 PS2 to PKG</h2>
+        <p>محول ألعاب PS2 إلى PKG</p>
+        
+        <button class="btn-pick" onclick="document.getElementById('file').click()">
+            📁 اختر ملف ISO
+        </button>
+        <input type="file" id="file" accept=".iso,.bin">
+        
+        <br>
+        
+        <button class="btn-convert" id="convertBtn" disabled onclick="convert()">
+            ⚡ تحويل إلى PKG
+        </button>
+        
+        <div id="status">👋 جاهز للتحويل</div>
+    </div>
+
+    <script>
+        var selected = null;
+        
+        document.getElementById('file').onchange = function(e) {
+            if (e.target.files[0]) {
+                selected = e.target.files[0];
+                document.getElementById('convertBtn').disabled = false;
+                document.getElementById('status').innerText = '✅ ' + selected.name;
+            }
+        };
+        
+        function convert() {
+            if (!selected) return;
+            var s = document.getElementById('status');
+            var b = document.getElementById('convertBtn');
+            s.innerText = '⏳ جاري التحويل...';
+            b.disabled = true;
+            
+            var fd = new FormData();
+            fd.append('iso', selected);
+            
+            // ضع رابط الخادم هنا
+            var serverUrl = 'https://your-server.onrender.com/convert';
+            
+            fetch(serverUrl, {
+                method: 'POST',
+                body: fd
+            })
+            .then(function(r) {
+                if (!r.ok) throw new Error('فشل الخادم');
+                return r.blob();
+            })
+            .then(function(blob) {
+                s.innerText = '✅ تم بنجاح!';
+                var a = document.createElement('a');
+                a.href = URL.createObjectURL(blob);
+                a.download = selected.name.replace('.iso','.pkg').replace('.ISO','.pkg');
+                a.click();
+                b.disabled = false;
+            })
+            .catch(function(e) {
+                s.innerText = '❌ ' + e.message;
+                b.disabled = false;
+            });
+        }
+    </script>
+</body>
+</html>
