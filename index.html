@@ -42,9 +42,9 @@
             border-radius: 10px;
             font-size: 14px;
             color: #aaa;
-            word-break: break-all;
         }
         input[type="file"] { display: none; }
+        iframe { display: none; }
     </style>
 </head>
 <body>
@@ -57,73 +57,52 @@
         </button>
         <input type="file" id="fileInput" accept=".iso,.bin,.ISO,.BIN">
         
-        <button class="btn-convert" id="convertBtn" disabled onclick="convertFile()">
-            ⚡ تحويل إلى PKG
-        </button>
-        
-        <a id="downloadLink" href="#" style="text-decoration:none;">
-            <button class="btn-download" id="downloadBtn">
-                ⬇️ تحميل ملف PKG
+        <form id="convertForm" method="POST" 
+              action="https://mouswie.pythonanywhere.com/convert" 
+              enctype="multipart/form-data" 
+              target="downloadFrame">
+            <input type="file" id="hiddenFile" name="iso" style="display:none;">
+            <button type="submit" class="btn-convert" id="convertBtn" disabled 
+                    onclick="startConvert()">
+                ⚡ تحويل إلى PKG
             </button>
-        </a>
+        </form>
         
         <div id="status">👋 اختر ملف ISO للبدء</div>
     </div>
+    
+    <iframe name="downloadFrame" id="downloadFrame"></iframe>
 
     <script>
         var selectedFile = null;
-        var pkgBlobUrl = null;
         
         document.getElementById('fileInput').onchange = function(e) {
             if (e.target.files[0]) {
                 selectedFile = e.target.files[0];
                 document.getElementById('convertBtn').disabled = false;
-                document.getElementById('downloadBtn').style.display = 'none';
                 document.getElementById('status').innerText = '✅ ' + selectedFile.name;
             }
         };
         
-        function convertFile() {
-            if (!selectedFile) return;
+        function startConvert() {
+            if (!selectedFile) return false;
             
-            var statusEl = document.getElementById('status');
-            var convertBtn = document.getElementById('convertBtn');
-            var downloadBtn = document.getElementById('downloadBtn');
-            var downloadLink = document.getElementById('downloadLink');
+            var dt = new DataTransfer();
+            dt.items.add(selectedFile);
+            document.getElementById('hiddenFile').files = dt.files;
             
-            statusEl.innerText = '⏳ جاري التحويل...';
-            convertBtn.disabled = true;
-            downloadBtn.style.display = 'none';
+            document.getElementById('status').innerText = '⏳ جاري التحويل... يرجى الانتظار';
+            document.getElementById('convertBtn').disabled = true;
             
-            var formData = new FormData();
-            formData.append('iso', selectedFile);
-            
-            fetch('https://mouswie.pythonanywhere.com/convert', {
-                method: 'POST',
-                body: formData
-            })
-            .then(function(response) {
-                if (!response.ok) throw new Error('فشل الخادم');
-                return response.blob();
-            })
-            .then(function(blob) {
-                if (pkgBlobUrl) URL.revokeObjectURL(pkgBlobUrl);
-                pkgBlobUrl = URL.createObjectURL(blob);
-                
-                var pkgName = selectedFile.name.replace('.iso','.pkg').replace('.ISO','.pkg');
-                
-                downloadLink.href = pkgBlobUrl;
-                downloadLink.download = pkgName;
-                downloadBtn.style.display = 'block';
-                
-                statusEl.innerText = '🎉 تم بنجاح! اضغط الزر الأخضر';
-                convertBtn.disabled = false;
-            })
-            .catch(function(err) {
-                statusEl.innerText = '❌ ' + err.message;
-                convertBtn.disabled = false;
-            });
+            return true;
         }
+        
+        document.getElementById('downloadFrame').onload = function() {
+            setTimeout(function() {
+                document.getElementById('status').innerText = '🎉 تم بنجاح! تحقق من التحميلات';
+                document.getElementById('convertBtn').disabled = false;
+            }, 3000);
+        };
     </script>
 </body>
 </html>
