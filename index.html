@@ -1,111 +1,204 @@
 <!DOCTYPE html>
-<html lang="ar">
+<html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PS2 to PKG</title>
     <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
-            font-family: sans-serif;
-            background: #0f0f1a;
-            color: white;
-            text-align: center;
-            padding: 30px;
+            font-family: 'Tahoma', sans-serif;
+            background: linear-gradient(135deg, #1a1a2e, #16213e, #0f3460);
+            color: #fff;
+            min-height: 100vh;
+            padding: 20px;
         }
-        .box {
-            background: #1a1a2e;
-            border-radius: 15px;
-            padding: 30px;
-            max-width: 400px;
+        .container {
+            max-width: 420px;
             margin: 0 auto;
         }
-        h2 { color: #e94560; }
-        button {
-            padding: 15px 30px;
-            margin: 10px;
-            font-size: 16px;
-            border: none;
-            border-radius: 10px;
-            cursor: pointer;
-            font-weight: bold;
+        .header {
+            text-align: center;
+            padding: 30px 0;
         }
-        .btn-pick {
-            background: #16213e;
+        .header .icon {
+            font-size: 70px;
+            margin-bottom: 10px;
+        }
+        .header h1 {
+            font-size: 28px;
             color: #e94560;
-            border: 2px solid #e94560;
+            text-shadow: 0 0 20px rgba(233,69,96,0.5);
+        }
+        .header p {
+            color: #a0a0b0;
+            font-size: 14px;
+            margin-top: 5px;
+        }
+        .card {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 20px;
+            padding: 25px;
+            margin: 15px 0;
+            backdrop-filter: blur(10px);
+        }
+        .btn {
+            display: block;
+            width: 100%;
+            padding: 18px;
+            margin: 12px 0;
+            font-size: 16px;
+            font-weight: bold;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-family: 'Tahoma', sans-serif;
+        }
+        .btn:active {
+            transform: scale(0.95);
+        }
+        .btn-select {
+            background: transparent;
+            color: #e94560;
+            border: 3px dashed #e94560;
+            font-size: 18px;
+        }
+        .btn-select:hover {
+            background: rgba(233,69,96,0.1);
         }
         .btn-convert {
-            background: #e94560;
+            background: linear-gradient(135deg, #e94560, #c23152);
             color: white;
-        }
-        .btn-download {
-            background: #4CAF50;
-            color: white;
-            display: none;
+            font-size: 20px;
+            box-shadow: 0 5px 20px rgba(233,69,96,0.4);
         }
         .btn-convert:disabled {
-            opacity: 0.5;
+            background: #444;
+            box-shadow: none;
             cursor: not-allowed;
         }
-        #status {
-            margin-top: 20px;
-            padding: 15px;
-            background: #0f0f1a;
-            border-radius: 10px;
-            color: #aaa;
-            min-height: 50px;
+        .btn-download {
+            background: linear-gradient(135deg, #00b894, #00a381);
+            color: white;
+            font-size: 20px;
+            box-shadow: 0 5px 20px rgba(0,184,148,0.4);
+            display: none;
+            animation: pulse 1.5s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { box-shadow: 0 5px 20px rgba(0,184,148,0.4); }
+            50% { box-shadow: 0 5px 40px rgba(0,184,148,0.8); }
+        }
+        .status-box {
+            background: rgba(0,0,0,0.3);
+            border-radius: 15px;
+            padding: 20px;
+            text-align: center;
+            margin: 15px 0;
+            min-height: 80px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .status-box .emoji {
+            font-size: 40px;
+            margin-left: 10px;
+        }
+        .status-box .text {
+            color: #ccc;
+            font-size: 15px;
+        }
+        .status-box .filename {
+            color: #e94560;
+            font-weight: bold;
+            word-break: break-all;
         }
         input[type="file"] { display: none; }
+        .loader {
+            display: inline-block;
+            width: 30px;
+            height: 30px;
+            border: 3px solid rgba(255,255,255,0.3);
+            border-top-color: #e94560;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin: 0 10px;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
     </style>
 </head>
 <body>
-    <div class="box">
-        <h2>🎮 PS2 to PKG</h2>
-        <p>محول ألعاب PS2 إلى PKG</p>
+    <div class="container">
         
-        <button class="btn-pick" onclick="document.getElementById('file').click()">
-            📁 اختر ملف ISO
-        </button>
-        <input type="file" id="file" accept=".iso,.bin">
+        <!-- الهيدر -->
+        <div class="header">
+            <div class="icon">🎮</div>
+            <h1>PS2 to PKG</h1>
+            <p>محول ألعاب بلايستيشن 2 إلى بلايستيشن 3</p>
+        </div>
         
-        <br>
+        <!-- بطاقة الاختيار -->
+        <div class="card">
+            <button class="btn btn-select" onclick="document.getElementById('fileInput').click()">
+                📁 اختر ملف ISO
+            </button>
+            <input type="file" id="fileInput" accept=".iso,.bin,.ISO,.BIN">
+        </div>
         
-        <button class="btn-convert" id="convertBtn" disabled onclick="convert()">
-            ⚡ تحويل إلى PKG
-        </button>
+        <!-- بطاقة التحويل -->
+        <div class="card">
+            <button class="btn btn-convert" id="convertBtn" disabled onclick="startConvert()">
+                ⚡ ابدأ التحويل
+            </button>
+            
+            <a id="downloadLink" style="text-decoration:none;">
+                <button class="btn btn-download" id="downloadBtn">
+                    ⬇️ تحميل ملف PKG
+                </button>
+            </a>
+        </div>
         
-        <br>
+        <!-- حالة التحويل -->
+        <div class="status-box" id="statusBox">
+            <span class="emoji">👋</span>
+            <span class="text">أهلاً بك! اختر ملف ISO للبدء</span>
+        </div>
         
-        <a id="downloadLink" style="display:none;">
-            <button class="btn-download" id="downloadBtn">⬇️ تحميل ملف PKG</button>
-        </a>
-        
-        <div id="status">👋 جاهز للتحويل</div>
     </div>
 
     <script>
-        var selected = null;
-        var pkgUrl = null;
+        var selectedFile = null;
+        var pkgBlobUrl = null;
         
-        document.getElementById('file').onchange = function(e) {
+        document.getElementById('fileInput').onchange = function(e) {
             if (e.target.files[0]) {
-                selected = e.target.files[0];
+                selectedFile = e.target.files[0];
                 document.getElementById('convertBtn').disabled = false;
-                document.getElementById('status').innerText = '✅ ' + selected.name;
-                document.getElementById('downloadLink').style.display = 'none';
+                document.getElementById('downloadBtn').style.display = 'none';
+                document.getElementById('statusBox').innerHTML = 
+                    '<span class="emoji">✅</span>' +
+                    '<span class="text">تم اختيار: <br><span class="filename">' + 
+                    selectedFile.name + '</span></span>';
             }
         };
         
-        function convert() {
-            if (!selected) return;
+        function startConvert() {
+            if (!selectedFile) return;
             
-            var s = document.getElementById('status');
-            var b = document.getElementById('convertBtn');
-            s.innerText = '⏳ جاري التحويل...';
-            b.disabled = true;
+            var statusBox = document.getElementById('statusBox');
+            var convertBtn = document.getElementById('convertBtn');
             
-            var fd = new FormData();
-            fd.append('iso', selected);
+            statusBox.innerHTML = 
+                '<span class="loader"></span>' +
+                '<span class="text">جاري التحويل... يرجى الانتظار</span>';
+            convertBtn.disabled = true;
+            
+            var formData = new FormData();
+            formData.append('iso', selectedFile);
             
             var xhr = new XMLHttpRequest();
             xhr.open('POST', 'https://mouswie.pythonanywhere.com/convert', true);
@@ -114,27 +207,35 @@
             xhr.onload = function() {
                 if (xhr.status === 200) {
                     var blob = xhr.response;
-                    pkgUrl = URL.createObjectURL(blob);
+                    pkgBlobUrl = URL.createObjectURL(blob);
                     
                     var dl = document.getElementById('downloadLink');
-                    dl.href = pkgUrl;
-                    dl.download = selected.name.replace('.iso','.pkg').replace('.ISO','.pkg');
-                    dl.style.display = 'inline-block';
+                    dl.href = pkgBlobUrl;
+                    dl.download = selectedFile.name.replace('.iso','.pkg').replace('.ISO','.pkg');
                     
-                    s.innerText = '✅ تم بنجاح! اضغط تحميل';
-                    b.disabled = false;
+                    document.getElementById('downloadBtn').style.display = 'block';
+                    
+                    statusBox.innerHTML = 
+                        '<span class="emoji">🎉</span>' +
+                        '<span class="text">تم التحويل بنجاح!<br>اضغط على زر التحميل الأخضر</span>';
+                    
+                    convertBtn.disabled = false;
                 } else {
-                    s.innerText = '❌ خطأ في الخادم';
-                    b.disabled = false;
+                    statusBox.innerHTML = 
+                        '<span class="emoji">❌</span>' +
+                        '<span class="text">خطأ في الخادم (رمز: ' + xhr.status + ')</span>';
+                    convertBtn.disabled = false;
                 }
             };
             
             xhr.onerror = function() {
-                s.innerText = '❌ فشل الاتصال بالخادم';
-                b.disabled = false;
+                statusBox.innerHTML = 
+                    '<span class="emoji">❌</span>' +
+                    '<span class="text">فشل الاتصال بالخادم. تأكد من الانترنت</span>';
+                convertBtn.disabled = false;
             };
             
-            xhr.send(fd);
+            xhr.send(formData);
         }
     </script>
 </body>
